@@ -1,0 +1,33 @@
+Files
+-------
+
+ Asst2TestDriver.java - Assignment 2 test Driver
+ ObjectInspector.java - example/simple object inspector
+
+  ClassA.java - classes/Interfaces used to test the inspector
+  ClassB.java
+  ClassC.java
+  ClassD.java
+  InterfaceA.java
+  InterfaceB.java
+
+Running the tester
+-------------------
+
+(1)make sure that your object inspector is in the current directory
+   with the Test driver you have properly set up your CLASSPATH
+   properly.
+
+(2) in the directory you have the Test Driver and all testing
+    classes in type:
+
+    java Asst2TestDriver ( name / full path to your Object inspector)
+ 
+
+(eg)  java Asst2TestDriver  ObjectInspector
+
+You can veryify the ouput by checking back to the structure of the
+test classes to make sure they are correct.
+
+
+
