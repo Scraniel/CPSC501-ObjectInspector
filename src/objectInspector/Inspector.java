@@ -1,38 +1,53 @@
 package objectInspector;
 
 import java.lang.reflect.*;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 
 public class Inspector implements ReflectiveInspector 
 {
-	LinkedList<Class> toInspect = new LinkedList<Class>();
+	LinkedList<Object> toInspect = new LinkedList<Object>();
+	//LinkedList<Class> toInspect = new LinkedList<Class>();
 	HashSet<String> inspected = new HashSet<String>();
 
 	public static void main(String[] args)
 	{
-		(new Inspector()).inspect(new String(), false);
+		(new Inspector()).inspect(new String("Hello"), false);
 	}
 	
 	@Override
 	public void inspect(Object obj, boolean recursive) 
 	{
-		toInspect.add(obj.getClass());		 
+		toInspect.add(obj);		 
+		//toInspect.add(obj.getClass());
 		
 		while(!toInspect.isEmpty())
 		{
-			Class inspecting = toInspect.pop();
+			Object instance = toInspect.pop();
+			Class inspecting;
+			
+			// Checks if the added object was a Class; if so, this
+			// means it's an interface that was added, so there is 
+			// no instantiation of the object. Just inspect it as is.
+			if(instance.getClass().isInstance(Class.class) )
+			{
+				inspecting = (Class)instance;
+				instance = null;
+			}
+			else
+			{
+				inspecting = instance.getClass();
+			}
+			//Class inspecting = toInspect.pop();
 			inspected.add(inspecting.getCanonicalName());
 			
-			System.out.println(findClassInfo(inspecting, recursive));
-			
+			System.out.println(findClassInfo(inspecting, instance, recursive));		
 		}
 		
 		
 	}
 	
-	public String findDeclaredFieldInfo(Class inspecting)
+	public String findDeclaredFieldInfo(Class inspecting, Object instance)
 	{
 		StringBuilder builder = new StringBuilder();
 		Field [] fields = inspecting.getDeclaredFields();
@@ -40,12 +55,33 @@ public class Inspector implements ReflectiveInspector
 		for(Field field : fields)
 		{
 			builder.append('\t');
+			// Modifiers
+			String modifier = Modifier.toString(field.getModifiers());
+			builder.append(modifier);
+			builder.append(' ');
+			
+			//Type 
 			builder.append(field.getType().getCanonicalName());
 			builder.append(' ');
+			
+			// Value; if there is no instance, don't bother checking
 			builder.append(field.getName());
-			builder.append(" = ");
-			//builder.append(field.get(toInspect));
-			builder.append('\n');
+			if(instance != null)
+			{
+				field.setAccessible(true);
+				builder.append(" = ");
+				try {
+					builder.append(field.get(instance));
+					
+				} catch (IllegalArgumentException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IllegalAccessException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				builder.append('\n');
+			}
 		}
 		
 		return builder.toString();
@@ -122,7 +158,7 @@ public class Inspector implements ReflectiveInspector
 		return builder.toString();
 	}
 	
-	public String findClassInfo(Class inspecting, boolean recursive)
+	public String findClassInfo(Class inspecting, Object instance, boolean recursive)
 	{
 		StringBuilder builder = new StringBuilder();
 		
@@ -134,7 +170,7 @@ public class Inspector implements ReflectiveInspector
 		builder.append("\nSuperclass Name:\n\t" + superClassName);
 		builder.append("\nInterfaces Implemented:\n" + findInterfaceInfo(inspecting));
 		builder.append("\nMethods:" + findDeclaredMethodInfo(inspecting));
-		builder.append("\nFields:\n" + findDeclaredFieldInfo(inspecting));
+		builder.append("\nFields:\n" + findDeclaredFieldInfo(inspecting, instance));
 		builder.append("\n-----------------------------------------------------------\n");
 		return builder.toString();
 	}
