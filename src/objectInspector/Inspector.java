@@ -1,6 +1,7 @@
 package objectInspector;
 
 import java.lang.reflect.*;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 
@@ -47,14 +48,15 @@ public class Inspector implements ReflectiveInspector
 		
 	}
 	
-	public String findDeclaredFieldInfo(Class inspecting, Object instance)
+	public ArrayList<String> findDeclaredFieldInfo(Class inspecting, Object instance)
 	{
 		StringBuilder builder = new StringBuilder();
 		Field [] fields = inspecting.getDeclaredFields();
+		ArrayList<String> strings = new ArrayList<String>();
 		
 		for(Field field : fields)
 		{
-			builder.append('\t');
+			builder.setLength(0);
 			// Modifiers
 			String modifier = Modifier.toString(field.getModifiers());
 			builder.append(modifier);
@@ -71,32 +73,57 @@ public class Inspector implements ReflectiveInspector
 				field.setAccessible(true);
 				builder.append(" = ");
 				try {
-					builder.append(field.get(instance));
+					Object obj = field.get(instance);
+					if(obj != null){
+						// Dealing with pesky arrays
+						if(obj.getClass().isArray())
+							builder.append(getInfoFromArray(obj));
+
+						else
+							builder.append(obj);
+					}
+					else
+						builder.append(obj);
 					
 				} catch (IllegalArgumentException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				} catch (IllegalAccessException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				builder.append('\n');
 			}
+			
+			strings.add(builder.toString());
 		}
 		
-		return builder.toString();
+		return strings;
 		
 	}
 	
-	public String findDeclaredMethodInfo(Class inspecting)
+	private String getInfoFromArray(Object obj)
+	{
+		StringBuilder builder = new StringBuilder();
+		builder.append('[');
+		int length = Array.getLength(obj);
+	    for (int i = 0; i < length; i ++) {
+	        Object arrayElement = Array.get(obj, i);
+	        builder.append(arrayElement);
+	        if(i < length -1)
+	        	builder.append(", ");
+	    }
+	    builder.append(']');
+	    
+	    return builder.toString();
+	}
+	
+	public ArrayList<String> findDeclaredMethodInfo(Class inspecting)
 	{
 		StringBuilder builder = new StringBuilder();
 		Method [] methods = inspecting.getDeclaredMethods();
+		ArrayList<String> strings = new ArrayList<String>();
 		
 		for(Method method : methods)
 		{
-			builder.append('\n');
-			builder.append('\t');
+			builder.setLength(0);
 			// modifiers
 			String modifier = Modifier.toString(method.getModifiers());
 			builder.append(modifier);
@@ -133,29 +160,34 @@ public class Inspector implements ReflectiveInspector
 				for(Class exception : exceptions)
 				{
 					builder.append(exception.getCanonicalName());
-					builder.append(' ');
+					builder.append(", ");
 				}
+				builder.deleteCharAt(builder.length()-1);
+				builder.deleteCharAt(builder.length()-1);
 			}
+			
+			strings.add(builder.toString());
 		}
 		
-		return builder.toString();
+		return strings;
 	}
 
-	public String findInterfaceInfo(Class inspecting)
+	public ArrayList<String> findInterfaceInfo(Class inspecting)
 	{
 		StringBuilder builder = new StringBuilder();
 		Class [] interfaces = inspecting.getInterfaces();
-		
+		ArrayList<String> strings = new ArrayList<String>();
 		
 		for(Class implementing : interfaces )
 		{
+			builder.setLength(0);
 			toInspect.add(implementing);
-			builder.append('\t');
-			builder.append(implementing.getName());
-			builder.append('\n');
+			builder.append(implementing.getCanonicalName());
+			
+			strings.add(builder.toString());
 		}
 		
-		return builder.toString();
+		return strings;
 	}
 	
 	public String findClassInfo(Class inspecting, Object instance, boolean recursive)
@@ -168,11 +200,17 @@ public class Inspector implements ReflectiveInspector
 		
 		builder.append("\n-----------------------------------------------------------\nNEW CLASS:\n\t" + inspecting.getCanonicalName());
 		builder.append("\nSuperclass Name:\n\t" + superClassName);
-		builder.append("\nInterfaces Implemented:\n" + findInterfaceInfo(inspecting));
-		builder.append("\nMethods:" + findDeclaredMethodInfo(inspecting));
-		builder.append("\nFields:\n" + findDeclaredFieldInfo(inspecting, instance));
+		builder.append("\nInterfaces Implemented:" + format(findInterfaceInfo(inspecting)));
+		builder.append("\nMethods:" + format(findDeclaredMethodInfo(inspecting)));
+		builder.append("\nFields:" + format(findDeclaredFieldInfo(inspecting, instance)));
 		builder.append("\n-----------------------------------------------------------\n");
 		return builder.toString();
+	}
+	
+	// Formats a list of strings into a nicely tabbed string.
+	public String format(ArrayList<String> list)
+	{
+		return "\n\t" + String.join("\n\t", list);
 	}
 	
 }
