@@ -13,55 +13,41 @@ import fromD2l.ClassD;
 
 public class Inspector implements ReflectiveInspector 
 {
-	LinkedList<Object> toInspect = new LinkedList<Object>();
-	//LinkedList<Class> toInspect = new LinkedList<Class>();
 	HashSet<Object> inspected = new HashSet<Object>();
-
-	public static void main(String[] args)
-	{
-		try {
-			(new Inspector()).inspect(new ClassA(), true);
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
 	
+	// The driver behind the introspection. Gets the class and sends it off to be inspected.
 	@Override
 	public void inspect(Object obj, boolean recursive) 
 	{
 		System.out.println("RECURSIVE IS SET TO " + recursive + ". WILL" + (recursive ? " " : " NOT ") + "RECURSIVELY INSPECT FIELDS.");
 		
-		toInspect.add(obj);		 
-		//toInspect.add(obj.getClass());
+		Object instance = obj;
+		Class inspecting;
 		
-		while(!toInspect.isEmpty())
+		// Checks if the added object was a Class; if so, this
+		// means it's an interface that was added, so there is 
+		// no instantiation of the object. Just inspect it as is.
+		if(instance.getClass().isInstance(Class.class) )
 		{
-			Object instance = toInspect.pop();
-			Class inspecting;
-			
-			// Checks if the added object was a Class; if so, this
-			// means it's an interface that was added, so there is 
-			// no instantiation of the object. Just inspect it as is.
-			if(instance.getClass().isInstance(Class.class) )
-			{
-				inspecting = (Class)instance;
-				instance = null;
-			}
-			else
-			{
-				inspecting = instance.getClass();
-			}
-			//Class inspecting = toInspect.pop();
-			inspected.add(inspecting);
-			
-			System.out.println(findClassInfo(inspecting, instance, recursive, 0));
-			System.out.println(String.join("\n" + prefix(0), traverseInheritanceHierarcy(inspecting, instance, recursive, 0)));
+			inspecting = (Class)instance;
+			instance = null;
 		}
+		else
+		{
+			inspecting = instance.getClass();
+		}
+
+		inspected.add(inspecting);
 		
-		
+		// These two calls needed to be separated to make sure we don't
+		// get duplicates when printing the inheritance hierarchy.
+		System.out.println(findClassInfo(inspecting, instance, recursive, 0));
+		System.out.println(String.join("\n" + Helpers.prefix(0), traverseInheritanceHierarcy(inspecting, instance, recursive, 0)));
+
 	}
 	
+	// Returns a list of the declared fields in this class, and if recursive is set to true,
+	// inspects all non-primitive fields.
 	public ArrayList<String> findDeclaredFieldInfo(Class inspecting, Object instance, boolean recursive, int depth)
 	{
 		StringBuilder builder = new StringBuilder();
@@ -91,7 +77,7 @@ public class Inspector implements ReflectiveInspector
 					if(obj != null){
 						// Dealing with pesky arrays
 						if(obj.getClass().isArray())
-							builder.append(getInfoFromArray(obj));
+							builder.append(Helpers.getInfoFromArray(obj));
 
 						else
 							builder.append(obj);
@@ -106,7 +92,7 @@ public class Inspector implements ReflectiveInspector
 							{
 								inspected.add(obj);
 								builder.append(findClassInfo(obj.getClass(), obj, false, depth + 1));
-								builder.append(prefix(depth + 1) + String.join("\n" + prefix(depth + 1), traverseInheritanceHierarcy(obj.getClass(), obj, recursive, depth + 1)));
+								builder.append(Helpers.prefix(depth + 1) + String.join("\n" + Helpers.prefix(depth + 1), traverseInheritanceHierarcy(obj.getClass(), obj, recursive, depth + 1)));
 							}
 							else
 							{
@@ -132,22 +118,7 @@ public class Inspector implements ReflectiveInspector
 		
 	}
 	
-	private String getInfoFromArray(Object obj)
-	{
-		StringBuilder builder = new StringBuilder();
-		builder.append('[');
-		int length = Array.getLength(obj);
-	    for (int i = 0; i < length; i ++) {
-	        Object arrayElement = Array.get(obj, i);
-	        builder.append(arrayElement);
-	        if(i < length -1)
-	        	builder.append(", ");
-	    }
-	    builder.append(']');
-	    
-	    return builder.toString();
-	}
-	
+	// Returns info about the methods of this class.
 	public ArrayList<String> findDeclaredMethodInfo(Class inspecting)
 	{
 		StringBuilder builder = new StringBuilder();
@@ -205,6 +176,8 @@ public class Inspector implements ReflectiveInspector
 		return strings;
 	}
 
+	// Returns info about the interfaces of this class. Recurses if interfaces
+	// extend others.
 	public ArrayList<String> findInterfaceInfo(Class inspecting, int depth)
 	{
 		StringBuilder builder = new StringBuilder();
@@ -221,7 +194,7 @@ public class Inspector implements ReflectiveInspector
 			
 			if(inspected.contains(implementing))
 			{
-				builder.append(prefix(depth + 1) + "This class was already inspected!\n");
+				builder.append(Helpers.prefix(depth + 1) + "This class was already inspected!\n");
 			}
 			else
 			{
@@ -234,8 +207,12 @@ public class Inspector implements ReflectiveInspector
 		return strings;
 	}
 	
+	// Inspects all superclasses in the inheritance hierarchy.
 	public ArrayList<String> traverseInheritanceHierarcy(Class inspecting, Object instance, boolean recursive, int depth)
 	{
+		
+		// Instead of using recursion, we can simply look all the way up the tree
+		// and iterate over these superclasses
 		StringBuilder builder = new StringBuilder();
 		ArrayList<String> strings = new ArrayList<String>();
 		ArrayList<Class> superClasses = new ArrayList<Class>();
@@ -246,6 +223,10 @@ public class Inspector implements ReflectiveInspector
 			superClass = superClass.getSuperclass();
 		}
 		
+		// Gets information on each class using the findClassInfo() method. This is why
+		// we have to call this method directly after calling findClassInfo elsewhere,
+		// because otherwise we would potentially look up the inheritance hierarchy of
+		// objects multiple times.
 		for(Class currentSuper : superClasses)
 		{
 
@@ -257,7 +238,7 @@ public class Inspector implements ReflectiveInspector
 			
 			if(inspected.contains(currentSuper))
 			{
-				builder.append(prefix(depth + 1) + "This class was already inspected!\n");
+				builder.append(Helpers.prefix(depth + 1) + "This class was already inspected!\n");
 			}
 			else
 			{
@@ -269,6 +250,7 @@ public class Inspector implements ReflectiveInspector
 		return strings;
 	}
 	
+	// Gets info about the constructors of this class.
 	public ArrayList<String> findConstructorInfo(Class inspecting)
 	{
 		StringBuilder builder = new StringBuilder();
@@ -306,6 +288,8 @@ public class Inspector implements ReflectiveInspector
 		return strings;
 	}
 	
+	
+	// The recursive part. Calls all of the other methods which in turn recursively call this one.
 	public String findClassInfo(Class inspecting, Object instance, boolean recursive, int depth)
 	{
 		StringBuilder builder = new StringBuilder();
@@ -314,24 +298,14 @@ public class Inspector implements ReflectiveInspector
 		String superClassName = superClass == null ? null : superClass.getCanonicalName();
 		
 		
-		builder.append("\n" + prefix(depth) + "-----------------------------------------------------------\n" + prefix(depth) + "NEW CLASS:\n" + prefix(depth) + inspecting.getCanonicalName() + '\n');
-		builder.append("\n" + prefix(depth) + "Immediate Superclass Name:\n" + prefix(depth) + superClassName + '\n');
-		builder.append("\n" + prefix(depth) + "Interfaces Implemented:\n" + prefix(depth) + String.join("\n" + prefix(depth), findInterfaceInfo(inspecting, depth + 1)) + '\n');
-		builder.append("\n" + prefix(depth) + "Methods:\n" + prefix(depth) + String.join("\n" + prefix(depth), findDeclaredMethodInfo(inspecting)) + '\n');
-		builder.append("\n" + prefix(depth) + "Constructors:\n" + prefix(depth) + String.join("\n" + prefix(depth), findConstructorInfo(inspecting)) + '\n');
-		builder.append("\n" + prefix(depth) + "Fields:\n" + prefix(depth) + String.join("\n" + prefix(depth), findDeclaredFieldInfo(inspecting, instance, recursive, depth + 1)) + '\n');
-		builder.append("\n" + prefix(depth) + "-----------------------------------------------------------\n");
+		builder.append("\n" + Helpers.prefix(depth) + "-----------------------------------------------------------\n" + Helpers.prefix(depth) + "NEW CLASS:\n" + Helpers.prefix(depth) + inspecting.getCanonicalName() + '\n');
+		builder.append("\n" + Helpers.prefix(depth) + "Immediate Superclass Name:\n" + Helpers.prefix(depth) + superClassName + '\n');
+		builder.append("\n" + Helpers.prefix(depth) + "Interfaces Implemented:\n" + Helpers.prefix(depth) + String.join("\n" + Helpers.prefix(depth), findInterfaceInfo(inspecting, depth + 1)) + '\n');
+		builder.append("\n" + Helpers.prefix(depth) + "Methods:\n" + Helpers.prefix(depth) + String.join("\n" + Helpers.prefix(depth), findDeclaredMethodInfo(inspecting)) + '\n');
+		builder.append("\n" + Helpers.prefix(depth) + "Constructors:\n" + Helpers.prefix(depth) + String.join("\n" + Helpers.prefix(depth), findConstructorInfo(inspecting)) + '\n');
+		builder.append("\n" + Helpers.prefix(depth) + "Fields:\n" + Helpers.prefix(depth) + String.join("\n" + Helpers.prefix(depth), findDeclaredFieldInfo(inspecting, instance, recursive, depth + 1)) + '\n');
+		builder.append("\n" + Helpers.prefix(depth) + "-----------------------------------------------------------\n");
 		return builder.toString();
-	}
-	
-	public String prefix(int depth)
-	{
-		if(depth < 0)
-			return "";
-		
-		char[] array = new char[depth];
-	    Arrays.fill(array, '\t');
-	    return new String(array);
 	}
 	
 }

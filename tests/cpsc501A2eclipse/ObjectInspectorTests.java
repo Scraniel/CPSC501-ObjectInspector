@@ -7,6 +7,7 @@ import java.util.ArrayList;
 import org.junit.Before;
 import org.junit.Test;
 import fromD2l.*;
+import objectInspector.Helpers;
 import objectInspector.Inspector;
 
 public class ObjectInspectorTests {
@@ -90,15 +91,15 @@ public class ObjectInspectorTests {
 	public void testPrefix()
 	{
 		// fail case
-		String result = inspector.prefix(-1);
+		String result = Helpers.prefix(-1);
 		assertEquals(result, "");
 		
 		// edge case
-		result = inspector.prefix(0);
+		result = Helpers.prefix(0);
 		assertEquals(result, "");
 		
 		// typical case
-		result = inspector.prefix(5);
+		result = Helpers.prefix(5);
 		assertEquals(result, "\t\t\t\t\t");
 	}
 	
