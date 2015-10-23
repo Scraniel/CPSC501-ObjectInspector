@@ -42,7 +42,7 @@ public class ObjectInspectorTests {
 		ArrayList<String> expected = new ArrayList<String>();
 		
 		ClassA instanceA = new ClassA();
-		ArrayList<String> result = inspector.findDeclaredFieldInfo(ClassA.class, instanceA);
+		ArrayList<String> result = inspector.findDeclaredFieldInfo(ClassA.class, instanceA, false);
 		String[] initializer = {"private int val = 3","private double val2 = 0.2", "private boolean val3 = true"};
 		initializeArrayList(expected, initializer);
 		assertTrue(result.containsAll(expected));
@@ -54,7 +54,7 @@ public class ObjectInspectorTests {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		result = inspector.findDeclaredFieldInfo(ClassB.class, instanceB);
+		result = inspector.findDeclaredFieldInfo(ClassB.class, instanceB, false);
 		String[] initializer2 = {"private fromD2l.ClassA val = ClassA", "private fromD2l.ClassA val2 = ClassA", "private fromD2l.ClassA val3 = null"};
 		initializeArrayList(expected, initializer2);
 		assertTrue(result.containsAll(expected));
@@ -72,7 +72,7 @@ public class ObjectInspectorTests {
 		*/
 		
 		ClassD instanceD = new ClassD();
-		result = inspector.findDeclaredFieldInfo(ClassD.class, instanceD);
+		result = inspector.findDeclaredFieldInfo(ClassD.class, instanceD, false);
 		String[] initializer4 = {"private fromD2l.ClassA val = ClassA", "private static fromD2l.ClassA val2 = null", "private int val3 = 34", "private fromD2l.ClassA[] vallarray = [null, null, null, null, null, null, null, null, null, null]"};
 		initializeArrayList(expected, initializer4);
 		assertTrue(result.containsAll(expected));
@@ -131,7 +131,7 @@ public class ObjectInspectorTests {
 		ArrayList<String> result = inspector.findInterfaceInfo(ClassA.class);
 		String[] initializer = {"java.io.Serializable","java.lang.Runnable"};
 		initializeArrayList(expected, initializer);
-		assertTrue(result.containsAll(expected));
+		assertTrue(result.toString() + "\n" + expected.toString(), result.containsAll(expected));
 		assertTrue(result.size() == expected.size());
 		
 		result = inspector.findInterfaceInfo(ClassB.class);
