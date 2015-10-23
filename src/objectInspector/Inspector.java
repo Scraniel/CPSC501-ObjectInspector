@@ -6,6 +6,9 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 
+import fromD2l.ClassA;
+import fromD2l.ClassB;
+import fromD2l.ClassC;
 import fromD2l.ClassD;
 
 public class Inspector implements ReflectiveInspector 
@@ -16,7 +19,12 @@ public class Inspector implements ReflectiveInspector
 
 	public static void main(String[] args)
 	{
-		(new Inspector()).inspect(new ClassD(), true);
+		try {
+			(new Inspector()).inspect(new ClassA(), true);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -213,7 +221,7 @@ public class Inspector implements ReflectiveInspector
 			
 			if(inspected.contains(implementing))
 			{
-				builder.append("This class was already inspected!\n");
+				builder.append(prefix(depth + 1) + "This class was already inspected!\n");
 			}
 			else
 			{
@@ -249,11 +257,11 @@ public class Inspector implements ReflectiveInspector
 			
 			if(inspected.contains(currentSuper))
 			{
-				builder.append("This class was already inspected!\n");
+				builder.append(prefix(depth + 1) + "This class was already inspected!\n");
 			}
 			else
 			{
-				builder.append(findClassInfo(currentSuper, null, false, depth + 1));
+				builder.append(findClassInfo(currentSuper, instance, recursive, depth + 1));
 			}
 			strings.add(builder.toString());
 		}
@@ -281,6 +289,18 @@ public class Inspector implements ReflectiveInspector
 					builder.append(", ");
 			}
 			builder.append(')');
+			
+			Class [] exceptions = constructors[i].getExceptionTypes();
+			if(exceptions.length != 0)
+			{
+				builder.append(" throws ");
+				for(int k = 0; k < exceptions.length; k++)
+				{
+					builder.append(exceptions[k].getCanonicalName());
+					if(k < exceptions.length -1)
+						builder.append(", ");
+				}
+			}
 			strings.add(builder.toString());
 		}
 		return strings;
@@ -304,14 +324,11 @@ public class Inspector implements ReflectiveInspector
 		return builder.toString();
 	}
 	
-	// Formats a list of strings into a nicely tabbed string.
-	public String format(ArrayList<String> list)
-	{
-		return "\n\t" + String.join("\n\t", list);
-	}
-	
 	public String prefix(int depth)
 	{
+		if(depth < 0)
+			return "";
+		
 		char[] array = new char[depth];
 	    Arrays.fill(array, '\t');
 	    return new String(array);
