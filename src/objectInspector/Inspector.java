@@ -5,15 +5,17 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedList;
 
+import fromD2l.ClassD;
+
 public class Inspector implements ReflectiveInspector 
 {
 	LinkedList<Object> toInspect = new LinkedList<Object>();
 	//LinkedList<Class> toInspect = new LinkedList<Class>();
-	HashSet<String> inspected = new HashSet<String>();
+	HashSet<Object> inspected = new HashSet<Object>();
 
 	public static void main(String[] args)
 	{
-		(new Inspector()).inspect(new String("Hello"), false);
+		(new Inspector()).inspect(new ClassD(), true);
 	}
 	
 	@Override
@@ -40,7 +42,7 @@ public class Inspector implements ReflectiveInspector
 				inspecting = instance.getClass();
 			}
 			//Class inspecting = toInspect.pop();
-			inspected.add(inspecting.getCanonicalName());
+			inspected.add(inspecting);
 			
 			System.out.println(findClassInfo(inspecting, instance, recursive));		
 		}
@@ -48,7 +50,7 @@ public class Inspector implements ReflectiveInspector
 		
 	}
 	
-	public ArrayList<String> findDeclaredFieldInfo(Class inspecting, Object instance)
+	public ArrayList<String> findDeclaredFieldInfo(Class inspecting, Object instance, boolean recursive)
 	{
 		StringBuilder builder = new StringBuilder();
 		Field [] fields = inspecting.getDeclaredFields();
@@ -81,9 +83,23 @@ public class Inspector implements ReflectiveInspector
 
 						else
 							builder.append(obj);
+						
+						// If the field is an object, inspect it
+						if(!field.getType().isPrimitive() && recursive == true)
+						{
+							if(!inspected.contains(obj))
+							{
+								toInspect.add(obj);
+							}
+							else
+							{
+								builder.append("This class has already been inspected!");
+							}
+						}
 					}
 					else
 						builder.append(obj);
+					
 					
 				} catch (IllegalArgumentException e) {
 					e.printStackTrace();
@@ -181,9 +197,17 @@ public class Inspector implements ReflectiveInspector
 		for(Class implementing : interfaces )
 		{
 			builder.setLength(0);
-			toInspect.add(implementing);
+			builder.append("***********************************************************\nInspecting Interface of " + inspecting.getCanonicalName() +": ");		
 			builder.append(implementing.getCanonicalName());
-			
+			builder.append("\n***********************************************************\n");
+			if(inspected.contains(implementing))
+			{
+				builder.append("This class was already inspected!\n");
+			}
+			else
+			{
+				builder.append(findClassInfo(implementing, null, false));
+			}
 			strings.add(builder.toString());
 		}
 		
@@ -200,9 +224,9 @@ public class Inspector implements ReflectiveInspector
 		
 		builder.append("\n-----------------------------------------------------------\nNEW CLASS:\n\t" + inspecting.getCanonicalName());
 		builder.append("\nSuperclass Name:\n\t" + superClassName);
-		builder.append("\nInterfaces Implemented:" + format(findInterfaceInfo(inspecting)));
+		builder.append("\nInterfaces Implemented:\n" + String.join("\n", findInterfaceInfo(inspecting)));
 		builder.append("\nMethods:" + format(findDeclaredMethodInfo(inspecting)));
-		builder.append("\nFields:" + format(findDeclaredFieldInfo(inspecting, instance)));
+		builder.append("\nFields:" + format(findDeclaredFieldInfo(inspecting, instance, recursive)));
 		builder.append("\n-----------------------------------------------------------\n");
 		return builder.toString();
 	}
